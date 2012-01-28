@@ -1,12 +1,14 @@
 package
 {
 
+  import flash.geom.Rectangle;
   import org.flixel.FlxCamera;
   import org.flixel.FlxG;
   import org.flixel.FlxGroup;
   import org.flixel.FlxObject;
   import org.flixel.FlxPoint;
   import org.flixel.FlxRect;
+  import org.flixel.FlxSprite;
   import org.flixel.FlxState;
   import org.flixel.FlxTilemap;
   import org.flixel.system.FlxTile;
@@ -16,6 +18,7 @@ package
    */
   public class Game extends FlxState
   {
+
     private var layer_back:FlxGroup;
     private var layer_objects:FlxGroup;
     private var layer_player:FlxGroup;
@@ -62,6 +65,13 @@ package
       this.layer_objects = new FlxGroup;
       this.layer_player = new FlxGroup;
 
+      // background
+      this.layer_back.add( this.getBackground( ) );
+      var back2:FlxSprite = this.getBackground( );
+      back2.x = back2.width;
+      this.layer_back.add( back2 );
+      // TODO:
+
       // main level tilemap
       this.tilemap = new FlxTilemap;
       this.tilemap.loadMap( Levels.level2( ), Globals.IMG_TILES, Globals.TILE_WIDTH, Globals.TILE_HEIGHT, 0, 0, 1, Globals.TILE_SOLID_START );
@@ -89,9 +99,11 @@ package
       this.add( this.layer_player );
 
       // camera handling
-      FlxG.camera.follow( this.player, FlxCamera.STYLE_PLATFORMER );
+      FlxG.camera.follow( this.player );
       FlxG.camera.setBounds( 0, 0, tilemap.width, tilemap.height );
       FlxG.worldBounds = new FlxRect( 0, 0, tilemap.width, tilemap.height );
+
+      FlxG.playMusic( Globals.MUS_GGJ );
     }
 
     override public function update( ):void {
@@ -110,6 +122,9 @@ package
       // collide player with objects
       FlxG.collide( this.layer_objects, this.player );
 
+      // handle background scrolling
+      this.handleBackgroundScrolling( );
+
       super.update( );
     }
 
@@ -122,6 +137,8 @@ package
     }
 
     private function setWind( ):void {
+
+      FlxG.play( Globals.SND_WIND, Globals.GAME_SOUND_VOLUME );
 
       // determine direction (either player movement direction; or player facing)
       if ( this.player.isJumping( ) ) {
@@ -139,6 +156,8 @@ package
     }
 
     private function setRain( ):void {
+
+      FlxG.play( Globals.SND_RAIN, Globals.GAME_SOUND_VOLUME );
 
       var cur:int;
       this.isRaining = true;
@@ -257,6 +276,25 @@ package
           this.snowOverlayTimer = 0;
         }
       }
+    }
+
+    private function getBackground( ):FlxSprite {
+
+      var background:FlxSprite = new FlxSprite;
+      background.loadGraphic( Globals.IMG_BACKGROUND1, false, false, 0, 0, true );// ( 0, 0, Globals.IMG_BACKGROUND1 );
+      background.scrollFactor.x = .5;
+      return background;
+    }
+
+    private function handleBackgroundScrolling( ):void {
+
+      var last:FlxSprite = (FlxSprite)(this.layer_back.members[ this.layer_back.length - 1 ]);
+      if ( FlxG.camera.x > last.x ) {
+        var newBackground:FlxSprite = this.getBackground( );
+        newBackground.x = last.x + last.width;
+        this.layer_back.add( newBackground );
+      }
+trace( FlxG.camera.x, last.x );
     }
 
     private function playerSnowCollision( tile:FlxTile, player:Player ):void {

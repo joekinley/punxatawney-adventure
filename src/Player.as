@@ -35,8 +35,16 @@ package
       maxVelocity.y = Globals.GAME_GRAVITY;
       acceleration.y = Globals.GAME_GRAVITY;
 
-      this.addAnimation( 'idle', [ 0 ] );
-      this.play( 'idle' );
+      this.addAnimation( 'idle_right', [ 8 ] );
+      this.addAnimation( 'idle_left', [ 4 ] );
+      this.addAnimation( 'jump_right', [ 1 ] );
+      this.addAnimation( 'jump_left', [ 2 ] );
+      this.addAnimation( 'run_left', [ 5, 6 ], Globals.PLAYER_ANIMATION_SPEED );
+      this.addAnimation( 'run_right', [ 9, 10 ], Globals.PLAYER_ANIMATION_SPEED );
+      this.addAnimation( 'collect', [ 12, 13, 14, 15 ], Globals.PLAYER_ANIMATION_SPEED );
+      this.addAnimation( 'idle_tail', [ 16, 17, 18, 19 ], Globals.PLAYER_ANIMATION_SPEED );
+
+      this.play( 'idle_right' );
     }
 
     override public function update( ):void {
@@ -47,6 +55,9 @@ package
       this.handleJump( );
       this.handleAnimation( );
 
+      // do not fall off the cliff
+      if ( this.x < 0 ) this.x = 0;
+
       super.update( );
     }
 
@@ -55,20 +66,20 @@ package
         if ( jump > 0 ) velocity.x = -Globals.PLAYER_SPEED_JUMP + this.wind_x + this.snow_x;
         else velocity.x = -Globals.PLAYER_SPEED + this.wind_x + this.snow_x;
         this.facing = FlxObject.LEFT;
-        //play( 'run_left' );
+        play( 'run_left' );
       }
       if ( FlxG.keys.RIGHT ) {
         if ( jump > 0 ) velocity.x = Globals.PLAYER_SPEED_JUMP + this.wind_x + this.snow_x;
         else velocity.x = Globals.PLAYER_SPEED + this.wind_x + this.snow_x;
         this.facing = FlxObject.RIGHT;
-        //play( 'run_right' );
+        play( 'run_right' );
       }
 
     }
 
     public function handleJump( ):void {
       // play jump sound
-      //if( FlxG.keys.justPressed( 'UP' ) || FlxG.keys.justPressed( 'X' ) ) FlxG.play( Globals.SoundJump, 0.5 );
+      if( FlxG.keys.justPressed( 'UP' ) || FlxG.keys.justPressed( 'X' ) ) FlxG.play( Globals.SND_JUMP, Globals.GAME_SOUND_VOLUME );
 
       if ( ( FlxG.keys.UP || FlxG.keys.X ) && jump >= 0 ) {
         jump += FlxG.elapsed;
@@ -77,8 +88,8 @@ package
       } else jump = -1;
 
       if ( jump > 0 ) {
-        //if ( this.facing == FlxObject.LEFT ) play( 'jump_left' );
-        //else if ( this.facing == FlxObject.RIGHT ) play( 'jump_right' );
+        if ( this.facing == FlxObject.LEFT ) play( 'jump_left' );
+        else if ( this.facing == FlxObject.RIGHT ) play( 'jump_right' );
         //else play( 'jump_center' );
 
         if ( jump < Globals.PLAYER_JUMP_MIN ) velocity.y = -Globals.PLAYER_JUMP + this.wind_y;
@@ -93,6 +104,13 @@ package
 
     public function handleAnimation( ):void {
       // TODO:
+      if ( jump > 0 ) return;
+      if ( this.facing == FlxObject.LEFT && this.velocity.x == 0 ) {
+        this.play( 'idle_left' );
+      }
+      else if ( this.facing == FlxObject.RIGHT && this.velocity.x == 0 ) {
+        this.play( 'idle_right' );
+      }
     }
 
     public function applyWind( x:int, y:int ):void {

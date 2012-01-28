@@ -14,7 +14,10 @@ package
     public static const GAME_WIDTH:int = 640;
     public static const GAME_HEIGHT:int = 480;
     public static const GAME_GRAVITY:int = 200;
+    public static const GAME_BACKGROUND_SCROLL:Number = 0;
+    public static const GAME_SOUND_VOLUME:Number = 0.8;
 
+    public static const PLAYER_ANIMATION_SPEED:int = 10;
     public static const PLAYER_WIDTH:int = 64;
     public static const PLAYER_HEIGHT:int = 64;
     public static const PLAYER_SPEED:int = 225;
@@ -55,10 +58,20 @@ package
     public static const TILE_PLAYER_START:int = 1;
 
     // file assets
-    [Embed(source = '../assets/graphics/tiles.png')] public static const IMG_TILES:Class;
-    [Embed(source = '../assets/graphics/phil1.png')] public static const IMG_PHIL:Class;
+    //[Embed(source = '../assets/graphics/tiles.png')] public static const IMG_TILES:Class;
+    [Embed(source = '../assets/graphics/boeden.png')] public static const IMG_TILES:Class;
+    [Embed(source = '../assets/graphics/phil.png')] public static const IMG_PHIL:Class;
     [Embed(source = '../assets/graphics/level1.png')] public static const IMG_LEVEL1:Class;
     [Embed(source = '../assets/graphics/level2.png')] public static const IMG_LEVEL2:Class;
+    [Embed(source = '../assets/graphics/stadt_bg8.png')] public static const IMG_BACKGROUND1:Class;
+    [Embed(source = '../assets/graphics/titel.png')] public static const IMG_TITLE:Class;
+
+    [Embed(source = '../assets/sounds/jump.mp3')] public static const SND_JUMP:Class;
+    [Embed(source = '../assets/sounds/rain.mp3')] public static const SND_RAIN:Class;
+    [Embed(source = '../assets/sounds/wind.mp3')] public static const SND_WIND:Class;
+
+    [Embed(source = '../assets/music/ggjmusic.mp3')] public static const MUS_GGJ:Class;
+
   }
 
 }
