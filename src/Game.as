@@ -43,6 +43,11 @@ package
     private var snowTimer:Number;
     private var snowOverlayTimer:Number;
 
+    // collectible animation
+    private var collectibleAnimationTimer:Number;
+    private var collectibleRespawn:Array;
+    private var collectibleIndicator:Array;
+
     public function Game()
     {
       wind_x = 0;
@@ -57,6 +62,8 @@ package
       isSnowing = false;
       snowTimer = 0;
       snowOverlayTimer = 0;
+
+      collectibleAnimationTimer = 0;
     }
 
     override public function create( ):void {
@@ -66,16 +73,16 @@ package
       this.layer_player = new FlxGroup;
 
       // background
-      this.layer_back.add( this.getBackground( ) );
-      var back2:FlxSprite = this.getBackground( );
-      back2.x = back2.width;
-      this.layer_back.add( back2 );
-      // TODO:
+      this.addBackground( Globals.IMG_BACKGROUND1 );
+      this.addBackground( Globals.IMG_BACKGROUND1 );
+      this.addBackground( Globals.IMG_BACKGROUND2 );
 
       // main level tilemap
       this.tilemap = new FlxTilemap;
       this.tilemap.loadMap( Levels.level2( ), Globals.IMG_TILES, Globals.TILE_WIDTH, Globals.TILE_HEIGHT, 0, 0, 1, Globals.TILE_SOLID_START );
       this.tilemap.setTileProperties( Globals.TILE_FLOOR_1, FlxObject.ANY, this.playerConcreteCollision, Player );
+      this.tilemap.setTileProperties( Globals.TILE_RAIN_1, FlxObject.NONE, this.playerCollect, Player, 12 );
+      this.tilemap.setTileProperties( Globals.TILE_PLAINS_1, FlxObject.ANY, null, null, 2 );
       this.layer_objects.add( this.tilemap );
 
       // overlay tilemap
@@ -88,6 +95,12 @@ package
       this.overlays.setTileProperties( Globals.TILE_SNOW_OVERLAY, FlxObject.NONE, this.playerSnowCollision, Player );
       this.layer_objects.add( this.overlays );
 
+      this.collectibleRespawn = new Array;
+      this.collectibleIndicator = new Array;
+      for ( i = 0; i < this.tilemap.totalTiles; i++ ) {
+        this.collectibleRespawn[ i ] = -1;
+        this.collectibleIndicator[ i ] = 0;
+      }
 
       this.player = new Player;
       this.layer_player.add( this.player );
@@ -110,7 +123,7 @@ package
 
       this.debug( );
       // events
-      this.handleWeatherAction( );
+      //this.handleWeatherAction( );
 
       this.handleWind( );
       this.handleRain( );
@@ -122,8 +135,7 @@ package
       // collide player with objects
       FlxG.collide( this.layer_objects, this.player );
 
-      // handle background scrolling
-      this.handleBackgroundScrolling( );
+      this.handleAnimation( );
 
       super.update( );
     }
@@ -169,7 +181,7 @@ package
       for ( var i:int = 0; i < this.tilemap.totalTiles; i++ ) {
         cur = this.tilemap.getTileByIndex( i );
 
-        if ( cur == Globals.TILE_FLOOR_1 ) {
+        if ( cur == Globals.TILE_FLOOR_1 || cur == Globals.TILE_PLAINS_1 || cur == Globals.TILE_PLAINS_2 ) {
           this.overlays.setTileByIndex( i, Globals.TILE_RAIN_OVERLAY );
         }
       }
@@ -204,16 +216,70 @@ package
       this.rainOverlayTimer = Globals.WEATHER_RAIN_DURATION;
     }
 
-    private function handleWeatherAction( ):void {
+    private function handleAnimation( ):void {
+      this.collectibleAnimationTimer += FlxG.elapsed;
+
+      for ( var j:int = 0; j < this.tilemap.totalTiles; j++ ) {
+        if ( this.collectibleRespawn[ j ] >= 0 ) {
+          this.collectibleRespawn[ j ] += FlxG.elapsed;
+
+          if ( this.collectibleRespawn[ j ] >= Globals.TILE_WEATHER_RESPAWN_TIME ) {
+            this.collectibleRespawn[ j ] = -1;
+            this.tilemap.setTileByIndex( j, this.collectibleIndicator[ j ] );
+          }
+        }
+      }
+
+      if ( this.collectibleAnimationTimer >= Globals.TILE_ANIMATION_SPEED ) {
+
+        var cur:int = 0;
+        for ( var i:int = 0; i < this.tilemap.totalTiles; i++ ) {
+          cur = this.tilemap.getTileByIndex( i );
+
+          switch( cur ) {
+            case Globals.TILE_CLOUD_1:
+            case Globals.TILE_CLOUD_2:
+            case Globals.TILE_RAIN_1:
+            case Globals.TILE_RAIN_2:
+            case Globals.TILE_SNOW_1:
+            case Globals.TILE_SNOW_2:
+            case Globals.TILE_SUN_1:
+            case Globals.TILE_SUN_2:
+              this.tilemap.setTileByIndex( i, cur + 1 );
+              break;
+
+            case Globals.TILE_RAIN_3:
+              this.tilemap.setTileByIndex( i, Globals.TILE_RAIN_1 );
+              break;
+
+            case Globals.TILE_CLOUD_3:
+              this.tilemap.setTileByIndex( i, Globals.TILE_CLOUD_1 );
+              break;
+
+            case Globals.TILE_SNOW_3:
+              this.tilemap.setTileByIndex( i, Globals.TILE_SNOW_1 );
+              break;
+
+            case Globals.TILE_SUN_3:
+              this.tilemap.setTileByIndex( i, Globals.TILE_SUN_1 );
+              break;
+
+          }
+        }
+        this.collectibleAnimationTimer = 0;
+      }
+    }
+
+    private function handleWeatherAction( action:String ):void {
 
       if ( this.isWindy ) return;
       if ( this.isRaining ) return;
 
       // wind
-      if ( FlxG.keys.justPressed( 'A' ) ) this.setWind( );
-      if ( FlxG.keys.justPressed( 'S' ) ) this.setRain( );
-      if ( FlxG.keys.justPressed( 'D' ) ) this.setSnow( );
-      if ( FlxG.keys.justPressed( 'F' ) ) this.setSun( );
+      if ( action == 'A' ) this.setWind( );
+      if ( action == 'S' ) this.setRain( );
+      if ( action == 'D' ) this.setSnow( );
+      if ( action == 'F' ) this.setSun( );
 
     }
 
@@ -278,23 +344,18 @@ package
       }
     }
 
-    private function getBackground( ):FlxSprite {
+    private function addBackground( back:Class ):void {
 
       var background:FlxSprite = new FlxSprite;
-      background.loadGraphic( Globals.IMG_BACKGROUND1, false, false, 0, 0, true );// ( 0, 0, Globals.IMG_BACKGROUND1 );
+      background.loadGraphic( back, false, false, 0, 0, true );// ( 0, 0, Globals.IMG_BACKGROUND1 );
       background.scrollFactor.x = .5;
-      return background;
-    }
 
-    private function handleBackgroundScrolling( ):void {
+      if ( this.layer_back.length > 0 ) {
 
-      var last:FlxSprite = (FlxSprite)(this.layer_back.members[ this.layer_back.length - 1 ]);
-      if ( FlxG.camera.x > last.x ) {
-        var newBackground:FlxSprite = this.getBackground( );
-        newBackground.x = last.x + last.width;
-        this.layer_back.add( newBackground );
+        var last:FlxSprite = this.layer_back.members[ this.layer_back.members.length - 1 ];
+        background.x = last.x + last.width;
       }
-trace( FlxG.camera.x, last.x );
+      this.layer_back.add( background );
     }
 
     private function playerSnowCollision( tile:FlxTile, player:Player ):void {
@@ -303,6 +364,30 @@ trace( FlxG.camera.x, last.x );
 
     private function playerConcreteCollision( tile:FlxTile, player:Player ):void {
       this.player.stopSnow( );
+    }
+
+    private function playerCollect( tile:FlxTile, player:Player ):void {
+
+      if ( tile.index == Globals.TILE_RAIN_1 || tile.index == Globals.TILE_RAIN_2 || tile.index == Globals.TILE_RAIN_3 ) {
+
+        this.handleWeatherAction( "S" );
+        this.collectibleIndicator[ tile.mapIndex ] = Globals.TILE_RAIN_1;
+      } else if ( tile.index == Globals.TILE_SUN_1 || tile.index == Globals.TILE_SUN_2 || tile.index == Globals.TILE_SUN_3 ) {
+
+        this.handleWeatherAction( "F" );
+        this.collectibleIndicator[ tile.mapIndex ] = Globals.TILE_SUN_1;
+      } else if ( tile.index == Globals.TILE_CLOUD_1 || tile.index == Globals.TILE_CLOUD_2 || tile.index == Globals.TILE_CLOUD_3 ) {
+
+        this.handleWeatherAction( "A" );
+        this.collectibleIndicator[ tile.mapIndex ] = Globals.TILE_CLOUD_1;
+      } else if ( tile.index == Globals.TILE_SNOW_1 || tile.index == Globals.TILE_SNOW_2 || tile.index == Globals.TILE_SNOW_3 ) {
+
+        this.handleWeatherAction( "D" );
+        this.collectibleIndicator[ tile.mapIndex ] = Globals.TILE_SNOW_1;
+      }
+
+      this.tilemap.setTileByIndex( tile.mapIndex, 0 );
+      this.collectibleRespawn[ tile.mapIndex ] = 0;
     }
 
     private function debug( ):void {
